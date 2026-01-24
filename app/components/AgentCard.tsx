@@ -3,7 +3,7 @@
 import { Agent } from '../types/agent';
 import { ChatButton } from './ChatButton';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface AgentCardProps {
   agent: Agent;
@@ -12,6 +12,15 @@ interface AgentCardProps {
 export function AgentCard({ agent }: AgentCardProps) {
   const [showChat, setShowChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const statusColors: Record<string, string> = {
     online: '#22c55e',
@@ -29,6 +38,26 @@ export function AgentCard({ agent }: AgentCardProps) {
     });
   };
 
+  const shortenAddress = (address: string) => {
+    if (isMobile) {
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+    return `${address.slice(0, 10)}...${address.slice(-8)}`;
+  };
+
+  const copyAddress = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(agent.agentAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const imageSize = isMobile ? 48 : 72;
+
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
@@ -38,8 +67,8 @@ export function AgentCard({ agent }: AgentCardProps) {
         flexDirection: 'column',
         position: 'relative',
         border: `1px solid ${isHovered ? '#ffffff' : '#4b5563'}`,
-        borderRadius: '16px',
-        padding: '20px',
+        borderRadius: isMobile ? '12px' : '16px',
+        padding: isMobile ? '12px' : '20px',
         background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%)',
         backdropFilter: 'blur(8px)',
         boxShadow: isHovered 
@@ -54,10 +83,10 @@ export function AgentCard({ agent }: AgentCardProps) {
       <div
         style={{
           position: 'absolute',
-          top: '16px',
-          left: '16px',
-          width: '10px',
-          height: '10px',
+          top: isMobile ? '10px' : '16px',
+          left: isMobile ? '10px' : '16px',
+          width: isMobile ? '8px' : '10px',
+          height: isMobile ? '8px' : '10px',
           borderRadius: '50%',
           backgroundColor: statusColors[agent.status] || statusColors.unknown,
           boxShadow: `0 0 8px ${statusColors[agent.status] || statusColors.unknown}`,
@@ -67,14 +96,14 @@ export function AgentCard({ agent }: AgentCardProps) {
       />
 
       {/* Horizontal Layout: Image -> Info -> Chat Button */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '20px' }}>
         {/* Profile Image - Circular */}
-        <div style={{ flexShrink: 0, marginLeft: '16px' }}>
+        <div style={{ flexShrink: 0, marginLeft: isMobile ? '8px' : '16px' }}>
           {agent.profileImage ? (
             <div
               style={{
-                width: '72px',
-                height: '72px',
+                width: `${imageSize}px`,
+                height: `${imageSize}px`,
                 borderRadius: '50%',
                 overflow: 'hidden',
                 border: `2px solid ${isHovered ? '#3b82f6' : '#4b5563'}`,
@@ -85,8 +114,8 @@ export function AgentCard({ agent }: AgentCardProps) {
               <Image
                 src={agent.profileImage}
                 alt={agent.agentName}
-                width={72}
-                height={72}
+                width={imageSize}
+                height={imageSize}
                 style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                 unoptimized
               />
@@ -94,14 +123,14 @@ export function AgentCard({ agent }: AgentCardProps) {
           ) : (
             <div
               style={{
-                width: '72px',
-                height: '72px',
+                width: `${imageSize}px`,
+                height: `${imageSize}px`,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '24px',
+                fontSize: isMobile ? '16px' : '24px',
                 fontWeight: 'bold',
                 color: 'white',
                 border: `2px solid ${isHovered ? '#3b82f6' : '#4b5563'}`,
@@ -118,10 +147,10 @@ export function AgentCard({ agent }: AgentCardProps) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3
             style={{
-              fontSize: '18px',
+              fontSize: isMobile ? '14px' : '18px',
               fontWeight: '700',
               color: 'white',
-              marginBottom: '4px',
+              marginBottom: '2px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -133,10 +162,10 @@ export function AgentCard({ agent }: AgentCardProps) {
           {agent.agentENS && (
             <p
               style={{
-                fontSize: '12px',
+                fontSize: isMobile ? '10px' : '12px',
                 color: '#60a5fa',
                 fontWeight: '600',
-                marginBottom: '8px',
+                marginBottom: isMobile ? '4px' : '8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -146,14 +175,14 @@ export function AgentCard({ agent }: AgentCardProps) {
             </p>
           )}
 
-          {/* Categories */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-            {agent.agentCategories.slice(0, 3).map((category) => (
+          {/* Categories - hide some on mobile */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? '4px' : '6px', marginBottom: isMobile ? '4px' : '8px' }}>
+            {agent.agentCategories.slice(0, isMobile ? 2 : 3).map((category) => (
               <span
                 key={category}
                 style={{
-                  padding: '2px 8px',
-                  fontSize: '11px',
+                  padding: isMobile ? '1px 6px' : '2px 8px',
+                  fontSize: isMobile ? '9px' : '11px',
                   fontWeight: '600',
                   background: 'rgba(59, 130, 246, 0.2)',
                   color: '#93c5fd',
@@ -166,31 +195,56 @@ export function AgentCard({ agent }: AgentCardProps) {
             ))}
           </div>
 
-          {/* Address */}
-          <p
+          {/* Address with Copy Button */}
+          <div
             style={{
-              fontSize: '11px',
-              fontFamily: 'monospace',
-              color: '#9ca3af',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: isMobile ? '4px' : '8px',
             }}
           >
-            {agent.agentAddress}
-          </p>
+            <p
+              style={{
+                fontSize: isMobile ? '9px' : '11px',
+                fontFamily: 'monospace',
+                color: '#9ca3af',
+                margin: 0,
+              }}
+            >
+              {shortenAddress(agent.agentAddress)}
+            </p>
+            <button
+              onClick={copyAddress}
+              style={{
+                background: copied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                borderRadius: '4px',
+                padding: isMobile ? '2px 4px' : '2px 6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+              }}
+              title="Copy address"
+            >
+              <span style={{ fontSize: isMobile ? '10px' : '12px' }}>
+                {copied ? '✓' : '📋'}
+              </span>
+            </button>
+          </div>
 
-          {/* Links */}
+          {/* Links - compact on mobile */}
           {(agent.agentWebsite || agent.agentX || agent.agentFC) && (
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px' }}>
               {agent.agentWebsite && (
                 <a
                   href={agent.agentWebsite}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    fontSize: '12px',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '500',
                     color: '#60a5fa',
                     textDecoration: 'none',
@@ -200,7 +254,7 @@ export function AgentCard({ agent }: AgentCardProps) {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  🌐 Site
+                  🌐{!isMobile && ' Site'}
                 </a>
               )}
               {agent.agentX && (
@@ -209,7 +263,7 @@ export function AgentCard({ agent }: AgentCardProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    fontSize: '12px',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '500',
                     color: '#60a5fa',
                     textDecoration: 'none',
@@ -225,7 +279,7 @@ export function AgentCard({ agent }: AgentCardProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    fontSize: '12px',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '500',
                     color: '#a78bfa',
                     textDecoration: 'none',
@@ -235,7 +289,7 @@ export function AgentCard({ agent }: AgentCardProps) {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  🎯 FC
+                  🎯{!isMobile && ' FC'}
                 </a>
               )}
             </div>
@@ -249,6 +303,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             agentName={agent.agentName}
             onChatToggle={setShowChat}
             showingChat={showChat}
+            isMobile={isMobile}
           />
         </div>
       </div>

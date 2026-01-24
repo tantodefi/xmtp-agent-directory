@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { AgentCard } from './components/AgentCard';
 import { useAgentFilter } from './hooks/useAgentFilter';
@@ -10,6 +10,7 @@ import styles from './page.module.css';
 
 export default function Home() {
   const { isFrameReady, setFrameReady } = useMiniKit();
+  const [showBanner, setShowBanner] = useState(true);
 
   // Initialize the miniapp
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      {/* Corner Banner */}
+      {/* Desktop Corner Banner */}
       <a
         href="https://github.com/base-org/base-demos"
         target="_blank"
@@ -37,8 +38,29 @@ export default function Home() {
       >
         <span>Building an agent?</span>
         <br />
-        <span>Add it to the directory repo</span>
+        <span>Add it to the directory</span>
       </a>
+
+      {/* Mobile Top Banner */}
+      {showBanner && (
+        <div className={styles.mobileBanner}>
+          <a
+            href="https://github.com/base-org/base-demos"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.mobileBannerLink}
+          >
+            🚀 Building an agent? Add it to the directory repo
+          </a>
+          <button
+            onClick={() => setShowBanner(false)}
+            className={styles.mobileBannerClose}
+            aria-label="Dismiss banner"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <header className={styles.header}>

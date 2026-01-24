@@ -9,7 +9,7 @@
   padding: 2rem;
 }
 
-/* Corner Banner */
+/* Corner Banner - Desktop Only */
 .cornerBanner {
   position: fixed;
   top: 35px;
@@ -39,6 +39,49 @@
   background: linear-gradient(135deg, #0066ff, #0052ff);
   box-shadow: 0 6px 16px rgba(0, 82, 255, 0.6);
   transform: rotate(-45deg) scale(1.05);
+}
+
+/* Mobile Top Banner */
+.mobileBanner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #0052ff, #0040cc);
+  padding: 0.75rem 1rem;
+  z-index: 100;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mobileBannerLink {
+  color: white;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.mobileBannerClose {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.mobileBannerClose:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Header */
@@ -151,35 +194,49 @@
 @media (max-width: 768px) {
   .container {
     padding: 1rem;
+    padding-top: 3.5rem;
   }
 
+  /* Hide corner banner on mobile, show top banner */
   .cornerBanner {
-    font-size: 0.65rem;
-    padding: 0.5rem 3rem;
-    width: 240px;
-    top: 18px;
-    left: -50px;
+    display: none;
+  }
+
+  .mobileBanner {
+    display: flex;
   }
 
   .header {
-    margin-top: 3rem;
+    margin-top: 1rem;
   }
 
   .title {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
-  .agentGrid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 0;
+  .searchInput {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
   }
 
   .categoryContainer {
     justify-content: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .categoryChip {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.75rem;
+  }
+
+  .agentGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0;
   }
 }
