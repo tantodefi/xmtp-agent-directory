@@ -9,7 +9,7 @@ interface XMTPChatWidgetProps {
   onClose: () => void;
 }
 
-export function XMTPChatWidget({ agentAddress, agentName, userAddress, onClose }: XMTPChatWidgetProps) {
+export function XMTPChatWidget({ agentAddress: _agentAddress, agentName, userAddress, onClose }: XMTPChatWidgetProps) {
   const [messages, setMessages] = useState<Array<{ text: string; sender: 'user' | 'agent'; time: string }>>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);

@@ -12,7 +12,7 @@ interface ChatButtonProps {
   showingChat?: boolean;
 }
 
-export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat = false }: ChatButtonProps) {
+export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat: _showingChat = false }: ChatButtonProps) {
   const { context } = useMiniKit();
   const openUrl = useOpenUrl();
   const [isLoading, setIsLoading] = useState(false);
