@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSignMessage } from 'wagmi';
+import { Client, IdentifierKind, type Signer, type Identifier, type Dm } from '@xmtp/browser-sdk';
+import { hexToBytes } from 'viem';
 
 interface XMTPChatWidgetProps {
   agentAddress: `0x${string}`;
@@ -9,13 +12,26 @@ interface XMTPChatWidgetProps {
   onClose: () => void;
 }
 
-export function XMTPChatWidget({ agentAddress: _agentAddress, agentName, userAddress, onClose }: XMTPChatWidgetProps) {
-  const [messages, setMessages] = useState<Array<{ text: string; sender: 'user' | 'agent'; time: string }>>([]);
+interface ChatMessage {
+  text: string;
+  sender: 'user' | 'agent';
+  time: string;
+  id?: string;
+}
+
+export function XMTPChatWidget({ agentAddress, agentName, userAddress, onClose }: XMTPChatWidgetProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const xmtpClientRef = useRef<Client | null>(null);
+  const conversationRef = useRef<Dm | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
+  
+  const { signMessageAsync } = useSignMessage();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,39 +41,193 @@ export function XMTPChatWidget({ agentAddress: _agentAddress, agentName, userAdd
     scrollToBottom();
   }, [messages]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamAbortRef.current) {
+        streamAbortRef.current.abort();
+      }
+    };
+  }, []);
+
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Create a Signer from the connected wallet
+  const createWalletSigner = useCallback((): Signer | null => {
+    if (!userAddress) return null;
+    
+    return {
+      type: 'EOA' as const,
+      getIdentifier: () => ({
+        identifier: userAddress,
+        identifierKind: IdentifierKind.Ethereum,
+      }),
+      signMessage: async (message: string): Promise<Uint8Array> => {
+        const signature = await signMessageAsync({ message });
+        return hexToBytes(signature);
+      },
+    };
+  }, [userAddress, signMessageAsync]);
+
+  // Start streaming messages from all conversations
+  const startMessageStream = useCallback(async (client: Client, conversationId: string) => {
+    try {
+      // Abort any existing stream
+      if (streamAbortRef.current) {
+        streamAbortRef.current.abort();
+      }
+      streamAbortRef.current = new AbortController();
+
+      // Stream all messages - filter to our conversation
+      const stream = await client.conversations.streamAllMessages({
+        onValue: (message) => {
+          // Only process messages from the target conversation
+          if (message.conversationId !== conversationId) return;
+          
+          // Only add messages from the agent (not our own)
+          if (message.senderInboxId !== client.inboxId) {
+            const content = typeof message.content === 'string' 
+              ? message.content 
+              : JSON.stringify(message.content);
+            
+            setMessages((prev) => {
+              // Avoid duplicates
+              if (prev.some(m => m.id === message.id)) return prev;
+              return [...prev, {
+                text: content,
+                sender: 'agent' as const,
+                time: new Date(Number(message.sentAtNs) / 1000000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                id: message.id,
+              }];
+            });
+            setIsLoading(false);
+          }
+        },
+        onError: (error) => {
+          console.error('Message stream error:', error);
+        },
+      });
+
+      // Store reference to stop the stream later
+      // The stream continues until explicitly stopped
+      return stream;
+    } catch (err) {
+      // Stream was aborted or failed
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Message stream error:', err);
+      }
+    }
+  }, []);
+
   const handleConnect = async () => {
+    if (!userAddress) {
+      setError('No wallet connected. Please connect your wallet first.');
+      return;
+    }
+
     setIsConnecting(true);
-    // TODO: Implement actual XMTP wallet connection
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      // Create signer from connected wallet
+      const signer = createWalletSigner();
+      if (!signer) {
+        throw new Error('Failed to create wallet signer');
+      }
+
+      // Create XMTP client
+      const client = await Client.create(signer, {
+        env: 'dev', // Use 'production' for mainnet
+      });
+      xmtpClientRef.current = client;
+      console.log('XMTP client created:', client.inboxId);
+
+      // Check if agent is reachable
+      const identifiers: Identifier[] = [
+        { identifier: agentAddress, identifierKind: IdentifierKind.Ethereum }
+      ];
+      const canMessageMap = await Client.canMessage(identifiers);
+      
+      if (!canMessageMap.get(agentAddress)) {
+        throw new Error(`Agent ${agentName} is not available on XMTP network`);
+      }
+
+      // Get the agent's inbox ID
+      const inboxId = await client.fetchInboxIdByIdentifier({
+        identifier: agentAddress,
+        identifierKind: IdentifierKind.Ethereum,
+      });
+
+      if (!inboxId) {
+        throw new Error(`Could not find inbox ID for agent ${agentName}`);
+      }
+
+      // Create DM conversation with agent
+      const conversation = await client.conversations.createDm(inboxId);
+      conversationRef.current = conversation;
+      console.log('Conversation created:', conversation.id);
+
+      // Load existing messages
+      const existingMessages = await conversation.messages({ limit: BigInt(50) });
+      const formattedMessages: ChatMessage[] = existingMessages.map((msg) => ({
+        text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+        sender: (msg.senderInboxId === client.inboxId ? 'user' : 'agent') as 'user' | 'agent',
+        time: new Date(Number(msg.sentAtNs) / 1000000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        id: msg.id,
+      })).reverse(); // Reverse to show oldest first
+
+      setMessages(formattedMessages.length > 0 ? formattedMessages : [
+        { text: `Connected! You can now chat with ${agentName}.`, sender: 'agent', time: getCurrentTime() }
+      ]);
+
       setIsConnected(true);
       setIsConnecting(false);
-      setMessages([
-        { text: `Welcome! I'm ${agentName}. How can I help you today?`, sender: 'agent', time: getCurrentTime() }
-      ]);
-    }, 1500);
+
+      // Start streaming new messages
+      startMessageStream(client, conversation.id);
+
+    } catch (err) {
+      console.error('XMTP connection error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to connect to XMTP');
+      setIsConnecting(false);
+    }
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim() || !isConnected) return;
+    if (!inputValue.trim() || !isConnected || !conversationRef.current) return;
 
     const userMessage = inputValue.trim();
     setInputValue('');
     setIsLoading(true);
+    setError(null);
 
-    setMessages((prev) => [...prev, { text: userMessage, sender: 'user', time: getCurrentTime() }]);
+    // Optimistically add user message
+    const tempId = `temp-${Date.now()}`;
+    setMessages((prev) => [...prev, { 
+      text: userMessage, 
+      sender: 'user', 
+      time: getCurrentTime(),
+      id: tempId,
+    }]);
 
-    // TODO: Implement actual XMTP message sending
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { text: `Thanks for your message! This is a demo response from ${agentName}. Full XMTP integration coming soon.`, sender: 'agent', time: getCurrentTime() },
-      ]);
+    try {
+      // Send message via XMTP
+      await conversationRef.current.sendText(userMessage);
+      console.log('Message sent:', userMessage);
+      
+      // Message was sent successfully
+      // The response will come through the message stream
+      
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send message');
       setIsLoading(false);
-    }, 1000);
+      
+      // Remove the optimistic message on error
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
+    }
   };
 
   // Connection screen
@@ -161,6 +331,23 @@ export function XMTPChatWidget({ agentAddress: _agentAddress, agentName, userAdd
                 <p style={{ color: '#6b7280', fontSize: '11px', marginBottom: '4px' }}>Your Address</p>
                 <p style={{ color: '#60a5fa', fontFamily: 'monospace', fontSize: '13px' }}>
                   {userAddress.slice(0, 8)}...{userAddress.slice(-6)}
+                </p>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  marginBottom: '24px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                <p style={{ color: '#ef4444', fontSize: '13px', margin: 0 }}>
+                  {error}
                 </p>
               </div>
             )}
