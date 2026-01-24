@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "xmtp-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "github:xmtp/xmtp-docs-mcp"]
+    }
+  },
+  "inputs": []
+}
