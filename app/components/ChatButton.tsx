@@ -32,8 +32,9 @@ export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat:
     try {
       if (isBaseApp) {
         // Use Base App deeplink for native messaging
-        // This will open the chat directly in the Base App's XMTP messaging interface
-        const deeplink = `https://go.cb-w.com/messaging?address=${agentAddress}`;
+        // Format: cbwallet://messaging/{0xAddress}
+        // This opens the chat directly in Base App's XMTP messaging interface
+        const deeplink = `cbwallet://messaging/${agentAddress}`;
         openUrl(deeplink);
         setTimeout(() => setIsLoading(false), 500);
       } else {
