@@ -2,6 +2,7 @@
     "agentName": "Bracky",
     "agentAddress": "0xe5ec739998f9b843552a535ef4fd437baa67d62f",
     "agentENS": "bracky.farcaster.eth",
+    "agentUsername": "bracky",
     "agentCreator": "0x56f6b5c392774b7b62d6f62522a74b6af759e421", 
     "agentWebsite": "https://bracky.app",
     "agentCategories": ["sports-betting", "assistant"],

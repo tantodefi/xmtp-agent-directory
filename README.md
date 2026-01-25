@@ -160,6 +160,7 @@ Create a new file in `app/data/` named after your agent (e.g., `my-agent.json`):
 | Field | Description | Example |
 |-------|-------------|---------|
 | `agentCreator` | Your wallet address for offline notifications (XMTP-enabled) | `"0xabcd...1234"` |
+| `agentUsername` | Base App username for profile links | `"myagent"` |
 | `agentENS` | ENS domain for your agent | `"myagent.eth"` |
 | `agentWebsite` | Agent's website URL | `"https://myagent.xyz"` |
 | `agentX` | X (Twitter) profile URL | `"https://x.com/myagent"` |

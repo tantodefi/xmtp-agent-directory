@@ -4,6 +4,7 @@ export interface Agent {
   agentName: string;
   agentAddress: `0x${string}`;
   agentENS?: string;
+  agentUsername?: string; // Base App username (e.g., "bracky" for base.app/profile/bracky)
   // Optional: Creator address for offline notifications (requires XMTP-enabled address)
   agentCreator?: `0x${string}`;
   agentWebsite?: string;

@@ -12,16 +12,18 @@ const _BASE_APP_CLIENT_FID = 9152;
 interface ChatButtonProps {
   agentAddress: `0x${string}`;
   agentName: string;
+  agentUsername?: string; // For profile links (e.g., "bracky" -> base.app/profile/bracky)
   onChatToggle?: (isOpen: boolean) => void;
   showingChat?: boolean;
   isMobile?: boolean;
 }
 
-export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat: _showingChat = false, isMobile = false }: ChatButtonProps) {
+export function ChatButton({ agentAddress, agentName, agentUsername, onChatToggle, showingChat: _showingChat = false, isMobile = false }: ChatButtonProps) {
   const { context } = useMiniKit();
   const openUrl = useOpenUrl();
   const { address: userAddress, isConnected: _isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
   const [isInMiniAppContext, setIsInMiniAppContext] = useState(false);
 
@@ -70,7 +72,7 @@ export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat:
         // Format: cbwallet://messaging/{0xAddress}
         // This opens the chat directly in Base App's XMTP messaging interface
         const deeplink = `cbwallet://messaging/${agentAddress}`;
-        console.log('[ChatButton] Opening deeplink:', deeplink);
+        console.log('[ChatButton] Opening chat deeplink:', deeplink);
         console.log('[ChatButton] Agent address:', agentAddress);
         
         // Use openUrl from OnchainKit MiniKit as shown in Base docs
@@ -90,34 +92,87 @@ export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat:
     }
   };
 
+  const handleProfile = async () => {
+    if (!agentUsername) return;
+    
+    setIsLoadingProfile(true);
+    try {
+      // Open the agent's Base App profile page
+      // Users can initiate chat from there
+      const profileUrl = `https://base.app/profile/${agentUsername}`;
+      console.log('[ChatButton] Opening profile:', profileUrl);
+      
+      openUrl(profileUrl);
+      setTimeout(() => setIsLoadingProfile(false), 500);
+    } catch (error) {
+      console.error('Failed to open profile:', error);
+      setIsLoadingProfile(false);
+    }
+  };
+
+  // Derive username from agentName if not provided (lowercase, no spaces)
+  const username = agentUsername || agentName.toLowerCase().replace(/\s+/g, '');
+
   return (
     <>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleChat();
-        }}
-        disabled={isLoading}
-        style={{
-          padding: isMobile ? '8px 12px' : '10px 20px',
-          background: showChatWidget 
-            ? 'linear-gradient(135deg, #dc2626, #b91c1c)' 
-            : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-          color: 'white',
-          borderRadius: isMobile ? '8px' : '10px',
-          fontWeight: '700',
-          fontSize: isMobile ? '11px' : '14px',
-          border: 'none',
-          cursor: isLoading ? 'wait' : 'pointer',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-          transition: 'all 0.2s ease',
-          whiteSpace: 'nowrap',
-          opacity: isLoading ? 0.7 : 1,
-        }}
-        aria-label={`Chat with ${agentName}`}
-      >
-        {isLoading ? '...' : showChatWidget ? '✕' : (isMobile ? '💬' : '💬 Chat')}
-      </button>
+      <div style={{ display: 'flex', gap: isMobile ? '6px' : '8px', alignItems: 'center' }}>
+        {/* Chat Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleChat();
+          }}
+          disabled={isLoading}
+          style={{
+            padding: isMobile ? '8px 12px' : '10px 20px',
+            background: showChatWidget 
+              ? 'linear-gradient(135deg, #dc2626, #b91c1c)' 
+              : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            color: 'white',
+            borderRadius: isMobile ? '8px' : '10px',
+            fontWeight: '700',
+            fontSize: isMobile ? '11px' : '14px',
+            border: 'none',
+            cursor: isLoading ? 'wait' : 'pointer',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
+            opacity: isLoading ? 0.7 : 1,
+          }}
+          aria-label={`Chat with ${agentName}`}
+        >
+          {isLoading ? '...' : showChatWidget ? '✕' : (isMobile ? '💬' : '💬 Chat')}
+        </button>
+
+        {/* Profile Button - Only show in TBA context as fallback for chat */}
+        {isInMiniAppContext && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleProfile();
+            }}
+            disabled={isLoadingProfile}
+            style={{
+              padding: isMobile ? '8px 12px' : '10px 20px',
+              background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+              color: 'white',
+              borderRadius: isMobile ? '8px' : '10px',
+              fontWeight: '700',
+              fontSize: isMobile ? '11px' : '14px',
+              border: 'none',
+              cursor: isLoadingProfile ? 'wait' : 'pointer',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              opacity: isLoadingProfile ? 0.7 : 1,
+            }}
+            aria-label={`View ${agentName} profile`}
+            title={`Open ${username}'s profile on Base App`}
+          >
+            {isLoadingProfile ? '...' : (isMobile ? '👤' : '👤 Profile')}
+          </button>
+        )}
+      </div>
 
       {showChatWidget && !shouldUseDeeplink && (
         <XMTPChatWidget

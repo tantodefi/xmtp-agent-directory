@@ -301,6 +301,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           <ChatButton
             agentAddress={agent.agentAddress}
             agentName={agent.agentName}
+            agentUsername={agent.agentUsername}
             onChatToggle={setShowChat}
             showingChat={showChat}
             isMobile={isMobile}
