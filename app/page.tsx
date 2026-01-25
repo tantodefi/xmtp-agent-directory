@@ -50,7 +50,7 @@ export default function Home() {
     <div className={styles.container}>
       {/* Desktop Corner Banner */}
       <a
-        href="https://github.com/base-org/base-demos"
+        href="https://github.com/tantodefi/xmtp-agent-directory"
         target="_blank"
         rel="noopener noreferrer"
         className={styles.cornerBanner}
@@ -64,7 +64,7 @@ export default function Home() {
       {showBanner && (
         <div className={styles.mobileBanner}>
           <a
-            href="https://github.com/base-org/base-demos"
+            href="https://github.com/tantodefi/xmtp-agent-directory"
             target="_blank"
             rel="noopener noreferrer"
             className={styles.mobileBannerLink}

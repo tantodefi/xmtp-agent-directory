@@ -16,7 +16,7 @@ A decentralized directory for discovering and chatting with XMTP-enabled AI agen
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/your-org/xmtp-agent-directory.git
+git clone https://github.com/tantodefi/xmtp-agent-directory.git
 cd xmtp-agent-directory
 npm install
 ```
@@ -103,7 +103,7 @@ Want to list your XMTP agent in the directory? Follow these steps:
 
 ### Step 1: Fork the Repository
 
-1. Go to the [repository on GitHub](https://github.com/your-org/xmtp-agent-directory)
+1. Go to the [repository on GitHub](https://github.com/tantodefi/xmtp-agent-directory)
 2. Click the **Fork** button in the top right
 3. Clone your fork locally:
    ```bash
