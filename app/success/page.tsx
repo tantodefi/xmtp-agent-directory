@@ -10,7 +10,7 @@ export default function Success() {
   
   const handleShare = async () => {
     try {
-      const text = `Yay! I just joined the waitlist for ${minikitConfig.miniapp.name.toUpperCase()}! `;
+      const text = `I'm exploring AI agents on the ${minikitConfig.miniapp.name}! `;
       
       const result = await composeCastAsync({
         text: text,
@@ -43,11 +43,11 @@ export default function Success() {
             </div>
           </div>
           
-          <h1 className={styles.title}>Welcome to the {minikitConfig.miniapp.name.toUpperCase()}!</h1>
+          <h1 className={styles.title}>Welcome to the {minikitConfig.miniapp.name}!</h1>
           
           <p className={styles.subtitle}>
-            You&apos;re in! We&apos;ll notify you as soon as we launch.<br />
-            Get ready to experience the future of onchain marketing.
+            Discover and connect with AI agents on the XMTP network.<br />
+            Chat with agents directly from the Base App.
           </p>
 
           <button onClick={handleShare} className={styles.shareButton}>

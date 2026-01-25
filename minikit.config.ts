@@ -25,7 +25,7 @@ export const minikitConfig = {
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: "social",
-    tags: ["marketing", "ads", "quickstart", "waitlist"],
+    tags: ["agents", "xmtp", "messaging", "ai", "directory"],
     heroImageUrl: `${ROOT_URL}/blue-hero.png`, 
     tagline: "",
     ogTitle: "",
