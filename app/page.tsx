@@ -5,12 +5,13 @@ import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { AgentCard } from './components/AgentCard';
 import { useAgentFilter } from './hooks/useAgentFilter';
 import { AGENT_CATEGORIES, type Agent } from './types/agent';
-import agentsData from './data/agents.json';
 import styles from './page.module.css';
 
 export default function Home() {
   const { isFrameReady, setFrameReady } = useMiniKit();
   const [showBanner, setShowBanner] = useState(true);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Initialize the miniapp
   useEffect(() => {
@@ -19,13 +20,31 @@ export default function Home() {
     }
   }, [setFrameReady, isFrameReady]);
 
+  // Fetch agents from API
+  useEffect(() => {
+    async function fetchAgents() {
+      try {
+        const response = await fetch('/api/agents');
+        const data = await response.json();
+        if (data.success && data.agents) {
+          setAgents(data.agents);
+        }
+      } catch (error) {
+        console.error('Failed to fetch agents:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchAgents();
+  }, []);
+
   const {
     searchQuery,
     selectedCategory,
     filteredAgents,
     handleSearch,
     handleCategorySelect,
-  } = useAgentFilter(agentsData as Agent[]);
+  } = useAgentFilter(agents);
 
   return (
     <div className={styles.container}>
@@ -102,7 +121,11 @@ export default function Home() {
 
       {/* Agent Grid */}
       <div className={styles.agentGrid}>
-        {filteredAgents.length === 0 ? (
+        {isLoading ? (
+          <div className={styles.emptyState}>
+            <p>Loading agents...</p>
+          </div>
+        ) : filteredAgents.length === 0 ? (
           <div className={styles.emptyState}>
             <p>No agents found matching your criteria</p>
           </div>

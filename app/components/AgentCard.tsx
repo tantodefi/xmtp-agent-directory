@@ -88,11 +88,11 @@ export function AgentCard({ agent }: AgentCardProps) {
           width: isMobile ? '8px' : '10px',
           height: isMobile ? '8px' : '10px',
           borderRadius: '50%',
-          backgroundColor: statusColors[agent.status] || statusColors.unknown,
-          boxShadow: `0 0 8px ${statusColors[agent.status] || statusColors.unknown}`,
+          backgroundColor: statusColors[agent.status ?? 'unknown'],
+          boxShadow: `0 0 8px ${statusColors[agent.status ?? 'unknown']}`,
           zIndex: 10,
         }}
-        title={`Status: ${agent.status}\nLast checked: ${formatDate(agent.lastChecked)}`}
+        title={`Status: ${agent.status ?? 'unknown'}\nLast checked: ${formatDate(agent.lastChecked ?? '')}`}
       />
 
       {/* Horizontal Layout: Image -> Info -> Chat Button */}

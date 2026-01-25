@@ -1,13 +1,10 @@
 'use client';
 
-import { useMiniKit } from '@coinbase/onchainkit/minikit';
+import { useIsInMiniApp } from '@coinbase/onchainkit/minikit';
 import { useOpenUrl } from '@coinbase/onchainkit/minikit';
 import { useAccount } from 'wagmi';
 import { useState } from 'react';
 import { XMTPChatWidget } from './XMTPChatWidget';
-
-// Base App clientFid - used to detect if running in Base App
-const BASE_APP_CLIENT_FID = '309857';
 
 interface ChatButtonProps {
   agentAddress: `0x${string}`;
@@ -18,19 +15,20 @@ interface ChatButtonProps {
 }
 
 export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat: _showingChat = false, isMobile = false }: ChatButtonProps) {
-  const { context } = useMiniKit();
+  const { isInMiniApp } = useIsInMiniApp();
   const openUrl = useOpenUrl();
   const { address: userAddress, isConnected: _isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
 
-  // Detect if running in Base App context using clientFid
-  const isBaseApp = context?.client?.clientFid?.toString() === BASE_APP_CLIENT_FID;
+  // Use deeplinks when running in any Mini App context (Base App, Farcaster, World App)
+  // This provides a native mobile feel
+  const shouldUseDeeplink = isInMiniApp;
 
   const handleChat = async () => {
     setIsLoading(true);
     try {
-      if (isBaseApp) {
+      if (shouldUseDeeplink) {
         // Use Base App deeplink for native messaging
         // Format: cbwallet://messaging/{0xAddress}
         // This opens the chat directly in Base App's XMTP messaging interface
@@ -38,7 +36,7 @@ export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat:
         openUrl(deeplink);
         setTimeout(() => setIsLoading(false), 500);
       } else {
-        // Show inline chat widget for Farcaster/World App/Web
+        // Show inline chat widget for web browsers
         const newState = !showChatWidget;
         setShowChatWidget(newState);
         onChatToggle?.(newState);
@@ -79,7 +77,7 @@ export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat:
         {isLoading ? '...' : showChatWidget ? '✕' : (isMobile ? '💬' : '💬 Chat')}
       </button>
 
-      {showChatWidget && !isBaseApp && (
+      {showChatWidget && !shouldUseDeeplink && (
         <XMTPChatWidget
           agentAddress={agentAddress}
           agentName={agentName}

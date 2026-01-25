@@ -26,6 +26,9 @@ npm install
 Create a `.env.local` file:
 
 ```bash
+# Development Mode (loads example agents for testing)
+DEV_MODE=true
+
 # Required for OnchainKit
 NEXT_PUBLIC_PROJECT_NAME="Agent Directory"
 NEXT_PUBLIC_ONCHAINKIT_API_KEY=<YOUR-CDP-API-KEY>
@@ -125,25 +128,24 @@ console.log(canMessage.get("0xYourAgentAddress")); // Should be true
 
 If your agent isn't XMTP-enabled, see the [XMTP Agent documentation](https://docs.xmtp.org) to get started.
 
-### Step 3: Add Your Agent to `agents.json`
+### Step 3: Create Your Agent JSON File
 
-Edit `app/data/agents.json` and add your agent entry:
+Create a new file in `app/data/` named after your agent (e.g., `my-agent.json`):
 
 ```json
 {
   "agentName": "Your Agent Name",
   "agentAddress": "0xYourAgentWalletAddress",
   "agentENS": "your-agent.eth",
-  "agentCreator": "0xYourCreatorWalletAddress",
   "agentWebsite": "https://youragent.com",
   "agentCategories": ["defi", "assistant"],
   "agentX": "https://x.com/youragent",
   "agentFC": "https://warpcast.com/youragent",
-  "profileImage": "https://yourdomain.com/agent-avatar.png",
-  "status": "online",
-  "lastChecked": "2026-01-24T00:00:00.000Z"
+  "profileImage": "https://yourdomain.com/agent-avatar.png"
 }
 ```
+
+> **Note:** You can leave `status`, `lastChecked`, and `agentCreator` fields blank or omit them entirely. The uptime checker will automatically populate status fields when it runs. The `agentCreator` field is only needed if you want offline notifications sent to your XMTP address.
 
 #### Required Fields
 
@@ -151,20 +153,20 @@ Edit `app/data/agents.json` and add your agent entry:
 |-------|-------------|---------|
 | `agentName` | Display name of your agent | `"DeFi Assistant"` |
 | `agentAddress` | XMTP-enabled wallet address | `"0x1234...abcd"` |
-| `agentCreator` | Your wallet address (for notifications) | `"0xabcd...1234"` |
 | `agentCategories` | Array of category tags | `["defi", "trading"]` |
-| `status` | Initial status (`"online"`, `"offline"`, `"unknown"`) | `"online"` |
-| `lastChecked` | ISO timestamp of last check | `"2026-01-24T00:00:00.000Z"` |
 
 #### Optional Fields
 
 | Field | Description | Example |
 |-------|-------------|---------|
+| `agentCreator` | Your wallet address for offline notifications (XMTP-enabled) | `"0xabcd...1234"` |
 | `agentENS` | ENS domain for your agent | `"myagent.eth"` |
 | `agentWebsite` | Agent's website URL | `"https://myagent.xyz"` |
 | `agentX` | X (Twitter) profile URL | `"https://x.com/myagent"` |
 | `agentFC` | Farcaster/Warpcast profile URL | `"https://warpcast.com/myagent"` |
 | `profileImage` | Avatar image URL (200x200 recommended) | `"https://...image.png"` |
+| `status` | Initial status (auto-populated by uptime checker) | `"online"` |
+| `lastChecked` | ISO timestamp (auto-populated by uptime checker) | `"2026-01-24T00:00:00.000Z"` |
 
 #### Available Categories
 
@@ -190,7 +192,7 @@ Verify your agent appears correctly in the directory and the chat button works.
 
 1. Commit your changes:
    ```bash
-   git add app/data/agents.json
+   git add app/data/your-agent-name.json
    git commit -m "Add [Your Agent Name] to directory"
    ```
 
@@ -211,6 +213,7 @@ Verify your agent appears correctly in the directory and the chat button works.
 ```
 app/
 ├── api/
+│   ├── agents/              # API endpoint to serve agent data
 │   └── cron/
 │       └── ping-agents/     # Uptime checker cron job
 ├── components/
@@ -218,9 +221,12 @@ app/
 │   ├── ChatButton.tsx       # Context-aware chat button
 │   └── XMTPChatWidget.tsx   # Inline XMTP chat modal
 ├── data/
-│   └── agents.json          # Agent registry
+│   ├── example-agents.json  # Example agents for development (DEV_MODE=true)
+│   └── *.json               # Individual agent JSON files (production)
 ├── hooks/
 │   └── useAgentFilter.ts    # Search and filter logic
+├── lib/
+│   └── loadAgents.ts        # Agent loading utility (handles DEV_MODE)
 ├── types/
 │   └── agent.ts             # TypeScript definitions
 └── page.tsx                 # Main directory page
@@ -234,12 +240,12 @@ app/
 
 The [/api/cron/ping-agents](app/api/cron/ping-agents/route.ts) endpoint runs daily via Vercel Cron:
 
-1. Loads all agents from `agents.json`
+1. Loads all agents from individual JSON files in `app/data/` (or `example-agents.json` if `DEV_MODE=true`)
 2. Creates an XMTP client with the configured wallet key
 3. Sends a "ping" message to each agent and waits up to 60 seconds for a response
 4. Updates `status` (`online`/`offline`/`unknown`) and `lastChecked` fields
 5. If an agent goes offline, sends an XMTP notification to the `agentCreator` address
-6. Writes updated data back to `agents.json`
+6. Writes updated data back to each agent's individual JSON file (skipped in DEV_MODE)
 
 **Cron Schedule** (configured in [vercel.json](vercel.json)):
 ```json
@@ -277,6 +283,7 @@ const deeplink = `cbwallet://messaging/${agentAddress}`;
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `DEV_MODE` | No | `true` to load example agents, `false` for production (default: `false`) |
 | `NEXT_PUBLIC_PROJECT_NAME` | Yes | App display name |
 | `NEXT_PUBLIC_ONCHAINKIT_API_KEY` | Yes | CDP API key |
 | `NEXT_PUBLIC_URL` | Yes | Production URL |

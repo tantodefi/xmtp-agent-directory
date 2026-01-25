@@ -2,16 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, type Signer, type Identifier } from '@xmtp/node-sdk';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hexToBytes } from 'viem';
-import agentsData from '../../../data/agents.json';
+import { loadAgents, findAgentFile } from '../../../lib/loadAgents';
 import { Agent } from '../../../types/agent';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as crypto from 'crypto';
 
 // IdentifierKind enum values (can't import const enum with isolatedModules)
 const IDENTIFIER_KIND_ETHEREUM = 0;
 
-const AGENTS_FILE_PATH = path.join(process.cwd(), 'app', 'data', 'agents.json');
 const PING_MESSAGE = 'ping';
 const PING_TIMEOUT_MS = 60000; // 60 seconds to wait for response
 
@@ -76,7 +74,10 @@ export async function GET(req: NextRequest) {
       console.warn('XMTP_WALLET_KEY not set - falling back to canMessage check only');
     }
 
-    const agents = agentsData as Agent[];
+    // Load agents from individual JSON files (or example-agents.json in dev mode)
+    const agents = await loadAgents();
+    console.log(`Loaded ${agents.length} agents`);
+    
     const updatedAgents: Agent[] = [];
     const notifiedCreators = new Set<string>();
 
@@ -101,8 +102,8 @@ export async function GET(req: NextRequest) {
 
     // Check each agent's status
     for (const agent of agents) {
-      let newStatus: 'online' | 'offline' | 'unknown' = agent.status;
-      const previousStatus = agent.status;
+      let newStatus: 'online' | 'offline' | 'unknown' = agent.status ?? 'unknown';
+      const previousStatus = agent.status ?? 'unknown';
 
       try {
         if (xmtpClient) {
@@ -118,11 +119,11 @@ export async function GET(req: NextRequest) {
         newStatus = 'unknown';
       }
 
-      // If agent went offline, notify creator
+      // If agent went offline, notify creator (if creator address is provided)
       if (previousStatus === 'online' && newStatus === 'offline') {
-        if (xmtpClient && !notifiedCreators.has(agent.agentCreator)) {
+        if (xmtpClient && agent.agentCreator && !notifiedCreators.has(agent.agentCreator)) {
           try {
-            await notifyCreatorAgentDown(agent, xmtpClient);
+            await notifyCreatorAgentDown(agent as Agent & { agentCreator: `0x${string}` }, xmtpClient);
             notifiedCreators.add(agent.agentCreator);
           } catch (error) {
             console.error(`Failed to notify creator for ${agent.agentName}:`, error);
@@ -136,19 +137,25 @@ export async function GET(req: NextRequest) {
         lastChecked: new Date().toISOString(),
       });
       
-      console.log(`Agent ${agent.agentName}: ${previousStatus} -> ${newStatus}`);
+      console.log(`Agent ${agent.agentName}: ${previousStatus || 'unknown'} -> ${newStatus}`);
     }
 
-    // Write updated agents back to JSON file
-    try {
-      await fs.writeFile(
-        AGENTS_FILE_PATH,
-        JSON.stringify(updatedAgents, null, 2),
-        'utf-8'
-      );
-      console.log('Successfully updated agents.json');
-    } catch (error) {
-      console.error('Failed to write agents.json:', error);
+    // Write updated agents back to their individual JSON files
+    // Skip if in dev mode (example-agents.json is read-only)
+    if (process.env.DEV_MODE !== 'true') {
+      for (const agent of updatedAgents) {
+        try {
+          const filePath = await findAgentFile(agent.agentAddress);
+          if (filePath) {
+            await fs.writeFile(filePath, JSON.stringify(agent, null, 2), 'utf-8');
+            console.log(`Updated ${agent.agentName} in ${filePath}`);
+          }
+        } catch (error) {
+          console.error(`Failed to write agent file for ${agent.agentName}:`, error);
+        }
+      }
+    } else {
+      console.log('DEV_MODE enabled - skipping file writes');
     }
 
     // Cleanup XMTP client
@@ -300,28 +307,31 @@ async function checkAgentReachability(agentAddress: string): Promise<boolean> {
 
 /**
  * Send XMTP message to agent creator notifying them their agent is down
+ * Only called when agent.agentCreator is defined (checked before calling)
  */
-async function notifyCreatorAgentDown(agent: Agent, xmtpClient: Client): Promise<void> {
+async function notifyCreatorAgentDown(agent: Agent & { agentCreator: `0x${string}` }, xmtpClient: Client): Promise<void> {
+  const creatorAddress = agent.agentCreator;
+  
   try {
     // Check if creator is reachable
     const identifiers: Identifier[] = [
-      { identifier: agent.agentCreator, identifierKind: IDENTIFIER_KIND_ETHEREUM }
+      { identifier: creatorAddress, identifierKind: IDENTIFIER_KIND_ETHEREUM }
     ];
     
     const canMessageMap = await Client.canMessage(identifiers);
-    if (!canMessageMap.get(agent.agentCreator)) {
-      console.log(`Creator ${agent.agentCreator} is not reachable on XMTP`);
+    if (!canMessageMap.get(creatorAddress)) {
+      console.log(`Creator ${creatorAddress} is not reachable on XMTP`);
       return;
     }
 
     // Get creator's inbox ID
     const inboxId = await xmtpClient.fetchInboxIdByIdentifier({
-      identifier: agent.agentCreator,
+      identifier: creatorAddress,
       identifierKind: IDENTIFIER_KIND_ETHEREUM,
     });
     
     if (!inboxId) {
-      console.log(`Could not find inbox ID for creator ${agent.agentCreator}`);
+      console.log(`Could not find inbox ID for creator ${creatorAddress}`);
       return;
     }
 
@@ -332,9 +342,9 @@ async function notifyCreatorAgentDown(agent: Agent, xmtpClient: Client): Promise
     const message = `🔴 Alert: Your agent "${agent.agentName}" (${agent.agentAddress}) appears to be down and not responding to ping messages. Please investigate.`;
     
     await conversation.sendText(message);
-    console.log(`Notified ${agent.agentCreator} about ${agent.agentName}`);
+    console.log(`Notified ${creatorAddress} about ${agent.agentName}`);
   } catch (error) {
-    console.error(`Failed to send notification to ${agent.agentCreator}:`, error);
+    console.error(`Failed to send notification to ${creatorAddress}:`, error);
     throw error;
   }
 }
