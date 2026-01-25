@@ -1,10 +1,14 @@
 'use client';
 
-import { useIsInMiniApp } from '@coinbase/onchainkit/minikit';
+import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { useOpenUrl } from '@coinbase/onchainkit/minikit';
 import { useAccount } from 'wagmi';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { XMTPChatWidget } from './XMTPChatWidget';
+
+// Known client FIDs for different Farcaster clients
+// Base App = 9152, Warpcast = 9152 (same protocol)
+const _BASE_APP_CLIENT_FID = 9152;
 
 interface ChatButtonProps {
   agentAddress: `0x${string}`;
@@ -15,15 +19,49 @@ interface ChatButtonProps {
 }
 
 export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat: _showingChat = false, isMobile = false }: ChatButtonProps) {
-  const { isInMiniApp } = useIsInMiniApp();
+  const { context } = useMiniKit();
   const openUrl = useOpenUrl();
   const { address: userAddress, isConnected: _isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
+  const [isInMiniAppContext, setIsInMiniAppContext] = useState(false);
 
-  // Use deeplinks when running in any Mini App context (Base App, Farcaster, World App)
-  // This provides a native mobile feel
-  const shouldUseDeeplink = isInMiniApp;
+  // Check for Mini App context using multiple signals
+  useEffect(() => {
+    // Method 1: Check MiniKit context (from sdk.context)
+    // If we have a user.fid, we're definitely in a mini app context
+    if (context?.user?.fid) {
+      console.log('[ChatButton] Detected Mini App context via user.fid:', context.user.fid);
+      setIsInMiniAppContext(true);
+      return;
+    }
+
+    // Method 2: Check client.clientFid (Base App = 9152)
+    if (context?.client?.clientFid) {
+      console.log('[ChatButton] Detected Mini App context via clientFid:', context.client.clientFid);
+      setIsInMiniAppContext(true);
+      return;
+    }
+
+    // Method 3: Check for ReactNativeWebView (TBA/mobile app WebView)
+    if (typeof window !== 'undefined' && (window as unknown as { ReactNativeWebView?: unknown }).ReactNativeWebView) {
+      console.log('[ChatButton] Detected Mini App context via ReactNativeWebView');
+      setIsInMiniAppContext(true);
+      return;
+    }
+
+    // Method 4: Check if we're in an iframe (web-based mini app host)
+    if (typeof window !== 'undefined' && window !== window.parent) {
+      console.log('[ChatButton] Detected Mini App context via iframe');
+      setIsInMiniAppContext(true);
+      return;
+    }
+
+    console.log('[ChatButton] Not in Mini App context, context:', context);
+  }, [context]);
+
+  // Use deeplinks when running in any Mini App context (Base App, Warpcast, etc.)
+  const shouldUseDeeplink = isInMiniAppContext;
 
   const handleChat = async () => {
     setIsLoading(true);
