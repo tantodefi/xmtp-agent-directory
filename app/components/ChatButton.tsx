@@ -1,6 +1,6 @@
 'use client';
 
-import { useMiniKit } from '@coinbase/onchainkit/minikit';
+import { useMiniKit, useOpenUrl } from '@coinbase/onchainkit/minikit';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { XMTPChatWidget } from './XMTPChatWidget';
@@ -19,6 +19,7 @@ interface ChatButtonProps {
 
 export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat: _showingChat = false, isMobile = false }: ChatButtonProps) {
   const { context } = useMiniKit();
+  const openUrl = useOpenUrl();
   const { address: userAddress, isConnected: _isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
@@ -72,11 +73,9 @@ export function ChatButton({ agentAddress, agentName, onChatToggle, showingChat:
         console.log('[ChatButton] Opening deeplink:', deeplink);
         console.log('[ChatButton] Agent address:', agentAddress);
         
-        // Use window.location.href for cbwallet:// deeplinks as per Base docs
-        // openUrl() is for external URLs, not internal wallet deeplinks
-        if (typeof window !== 'undefined') {
-          window.location.href = deeplink;
-        }
+        // Use openUrl from OnchainKit MiniKit as shown in Base docs
+        // https://docs.base.org/base-app/agents/deeplinks
+        openUrl(deeplink);
         setTimeout(() => setIsLoading(false), 500);
       } else {
         // Show inline chat widget for web browsers
