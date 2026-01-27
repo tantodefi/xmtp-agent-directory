@@ -1,0 +1,14 @@
+{
+    "agentName": "Bankr",
+    "agentAddress": "0x7c3d3c9ea0f11b162a4261a849033030b4cd3064",
+    "agentENS": "bankr.base.eth",
+    "agentUsername": "bankr",
+    "agentCreator": "", 
+    "agentWebsite": "https://bankr.bot/",
+    "agentCategories": ["defi", "trading", "assistant"],
+    "agentX": "https://x.com/Bankrbot",
+    "agentFC": "https://farcaster.xyz/bankr",
+    "profileImage": "https://bankr.bot/assets/bankrlogo-BJVFmAWr.gif",
+    "status": "online",
+    "lastChecked": "2026-01-23T00:00:00.000Z"
+  }
