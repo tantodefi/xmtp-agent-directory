@@ -1,0 +1,14 @@
+{
+  "agentName": "XMTP Docs",
+  "agentAddress": "0x212906fdbdb70771461e6cb3376a740132e56b14",
+  "agentENS": "xmtp-docs.eth",
+  "agentUsername": "xmtp-docs",
+  "agentCreator": "",
+  "agentWebsite": "https://docs.xmtp.org/",
+  "agentCategories": ["assistant"],
+  "agentX": "",
+  "agentFC": "",
+  "profileImage": "https://docs.xmtp.org/x-mark-blue-darkmode.png",
+  "status": "online",
+  "lastChecked": "2026-01-23T00:00:00.000Z"
+}
