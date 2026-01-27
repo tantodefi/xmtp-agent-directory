@@ -24,6 +24,7 @@ export function ChatButton({ agentAddress, agentName, agentUsername, onChatToggl
   const { address: userAddress, isConnected: _isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingXmtpChat, setIsLoadingXmtpChat] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
   const [isInMiniAppContext, setIsInMiniAppContext] = useState(false);
 
@@ -110,6 +111,25 @@ export function ChatButton({ agentAddress, agentName, agentUsername, onChatToggl
     }
   };
 
+  const handleXmtpChat = async () => {
+    setIsLoadingXmtpChat(true);
+    try {
+      // Open xmtp.chat web interface for direct messaging
+      const xmtpChatUrl = `https://xmtp.chat/production/dm/${agentAddress}`;
+      console.log('[ChatButton] Opening xmtp.chat:', xmtpChatUrl);
+      
+      if (isInMiniAppContext) {
+        openUrl(xmtpChatUrl);
+      } else {
+        window.open(xmtpChatUrl, '_blank');
+      }
+      setTimeout(() => setIsLoadingXmtpChat(false), 500);
+    } catch (error) {
+      console.error('Failed to open xmtp.chat:', error);
+      setIsLoadingXmtpChat(false);
+    }
+  };
+
   // Derive username from agentName if not provided (lowercase, no spaces)
   const username = agentUsername || agentName.toLowerCase().replace(/\s+/g, '');
 
@@ -172,6 +192,33 @@ export function ChatButton({ agentAddress, agentName, agentUsername, onChatToggl
             {isLoadingProfile ? '...' : (isMobile ? '👤' : '👤 Profile')}
           </button>
         )}
+
+        {/* XMTP.chat Button - Opens web-based XMTP chat interface */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleXmtpChat();
+          }}
+          disabled={isLoadingXmtpChat}
+          style={{
+            padding: isMobile ? '8px 12px' : '10px 20px',
+            background: 'linear-gradient(135deg, #f97316, #ea580c)',
+            color: 'white',
+            borderRadius: isMobile ? '8px' : '10px',
+            fontWeight: '700',
+            fontSize: isMobile ? '11px' : '14px',
+            border: 'none',
+            cursor: isLoadingXmtpChat ? 'wait' : 'pointer',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
+            opacity: isLoadingXmtpChat ? 0.7 : 1,
+          }}
+          aria-label={`Chat with ${agentName} on xmtp.chat`}
+          title="Open chat on xmtp.chat"
+        >
+          {isLoadingXmtpChat ? '...' : (isMobile ? '🌐' : '🌐 xmtp.chat')}
+        </button>
       </div>
 
       {showChatWidget && !shouldUseDeeplink && (
