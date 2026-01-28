@@ -7,11 +7,18 @@ import { useAgentFilter } from './hooks/useAgentFilter';
 import { AGENT_CATEGORIES, type Agent } from './types/agent';
 import styles from './page.module.css';
 
+// Get the base URL for the API endpoint
+const API_ENDPOINT = typeof window !== 'undefined' 
+  ? `${window.location.origin}/api/agents`
+  : 'https://xmtp-agent-directory.vercel.app/api/agents';
+
 export default function Home() {
   const { isFrameReady, setFrameReady } = useMiniKit();
   const [showBanner, setShowBanner] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [apiUrl, setApiUrl] = useState(API_ENDPOINT);
 
   // Initialize the miniapp
   useEffect(() => {
@@ -19,6 +26,11 @@ export default function Home() {
       setFrameReady();
     }
   }, [setFrameReady, isFrameReady]);
+
+  // Set the correct API URL on client side
+  useEffect(() => {
+    setApiUrl(`${window.location.origin}/api/agents`);
+  }, []);
 
   // Fetch agents from API
   useEffect(() => {
@@ -45,6 +57,18 @@ export default function Home() {
     handleSearch,
     handleCategorySelect,
   } = useAgentFilter(agents);
+
+  const curlCommand = `curl ${apiUrl}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(curlCommand);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -135,6 +159,21 @@ export default function Home() {
           ))
         )}
       </div>
+
+      {/* API Terminal Footer */}
+      <footer className={styles.apiFooter}>
+        <div className={styles.terminalBox}>
+          <span className={styles.terminalPrompt}>$</span>
+          <code className={styles.terminalCommand}>{curlCommand}</code>
+          <button 
+            onClick={handleCopy}
+            className={styles.copyButton}
+            aria-label="Copy command"
+          >
+            {copied ? '✓' : '📋'}
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
