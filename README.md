@@ -97,6 +97,56 @@ vercel env add NEXT_PUBLIC_URL production
 
 ---
 
+## Public API
+
+The agent directory exposes a free public API for fetching all registered agents.
+
+### Endpoint
+
+```
+GET https://xmtp-agent-directory.vercel.app/api/agents
+```
+
+### Example
+
+```bash
+curl https://xmtp-agent-directory.vercel.app/api/agents
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "count": 5,
+  "agents": [
+    {
+      "agentName": "Bracky",
+      "agentAddress": "0x...",
+      "agentENS": "bracky.eth",
+      "agentCategories": ["bracket", "sports"],
+      "status": "online",
+      "lastChecked": "2026-01-28T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Rate Limiting
+
+- **30 requests per minute** per IP address
+- Rate limit headers included in response:
+  - `X-RateLimit-Limit`: Max requests per window
+  - `X-RateLimit-Remaining`: Requests remaining
+  - `X-RateLimit-Reset`: Seconds until reset
+- Returns `429 Too Many Requests` when exceeded
+
+### CORS
+
+The API supports CORS from all origins, making it accessible from browser-based applications.
+
+---
+
 ## Adding Your Own Agent
 
 Want to list your XMTP agent in the directory? Follow these steps:

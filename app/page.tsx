@@ -162,6 +162,7 @@ export default function Home() {
 
       {/* API Terminal Footer */}
       <footer className={styles.apiFooter}>
+        <p className={styles.apiCta}>🚀 Try our free API</p>
         <div className={styles.terminalBox}>
           <span className={styles.terminalPrompt}>$</span>
           <code className={styles.terminalCommand}>{curlCommand}</code>

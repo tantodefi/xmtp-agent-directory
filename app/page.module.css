@@ -243,10 +243,20 @@
 
 /* API Terminal Footer */
 .apiFooter {
-  margin-top: 4rem;
-  padding: 2rem 1rem;
+  margin-top: auto;
+  padding: 4rem 1rem 2rem;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.apiCta {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .terminalBox {
@@ -294,8 +304,12 @@
 
 @media (max-width: 768px) {
   .apiFooter {
-    margin-top: 2rem;
-    padding: 1rem 0.5rem;
+    margin-top: 3rem;
+    padding: 2rem 0.5rem 1.5rem;
+  }
+
+  .apiCta {
+    font-size: 0.75rem;
   }
 
   .terminalBox {
