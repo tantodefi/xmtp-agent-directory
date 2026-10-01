@@ -1,0 +1,12 @@
+{
+    "agentName": "bell.zipbook.eth — the zipcoin doorbell",
+    "agentAddress": "0x047807a01ef418794be2c6f260d3304eacdf9ddb",
+    "agentENS": "bell.zipbook.eth",
+    "agentUsername": "zipcoinbell",
+    "agentCreator": "",
+    "agentWebsite": "https://www.zipcoin.cash/docs#bell",
+    "agentCategories": ["social", "notifications"],
+    "agentX": "https://x.com/zipcoincash",
+    "agentFC": "",
+    "profileImage": "https://www.zipcoin.cash/icon.png"
+}
